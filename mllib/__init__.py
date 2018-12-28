@@ -55,69 +55,75 @@ def build_graph(h, w, channels, classes):
         Placeholder to feed x input
     y_placeholder: tensor
         Placeholder to feed y input
+
+    Raises
+    ------
+    ValueError
+        If an image is larger than 256 high x 256 wide
     """
     x_placeholder = tf.placeholder(tf.float32, shape=(None, h, w, channels))
     y_placeholder = tf.placeholder(tf.float32, shape=(None, classes))
 
-    x_input = x_placeholder
+    input_to_this_layer = x_placeholder
     channels_prev = channels
-    channels_this_layer = 8
     channel_count_multiplier = 1
 
+    if h > 256 or w > 256:
+        raise ValueError('Image size larger than 256 high x 256 wide is not supported.')
+
     if h > 128:
-        # Set up conv net
         with tf.variable_scope("cv256") as scope:
             channels_this_layer = 16
             weights = tf.get_variable("weights", [5, 5, channels_prev, channels_this_layer], dtype=tf.float32,
                                       initializer=tf.contrib.layers.xavier_initializer(seed=0))
             bias = tf.get_variable("bias", [channels_this_layer], dtype=tf.float32)
-            z = tf.add(tf.nn.conv2d(x_input, weights, strides=[1, 1, 1, 1], padding='SAME'), bias)
+            z = tf.add(tf.nn.conv2d(input_to_this_layer, weights, strides=[1, 1, 1, 1], padding='SAME'), bias)
             activation = tf.nn.relu(z, name=scope.name)
-            # Apply pooling with ksize: batch, h, w, channel
-            x_input = tf.nn.max_pool(activation, ksize=(1, 2, 2, 1), strides=[1, 2, 2, 1], padding='VALID')  # to 128
+            input_to_this_layer = tf.nn.max_pool(activation, ksize=(1, 2, 2, 1), strides=[1, 2, 2, 1], padding='VALID')
             channels_prev = channels_this_layer
             channel_count_multiplier *= 2
+            # 256x256 3 channels to 128x128, 16 channels
 
     if h > 64:
-        # Set up conv net
         with tf.variable_scope("cv128") as scope:
-            channels_this_layer = 8 * channel_count_multiplier  # 32
+            channels_this_layer = 8 * channel_count_multiplier
             weights = tf.get_variable("weights", [5, 5, channels_prev, channels_this_layer], dtype=tf.float32,
                                       initializer=tf.contrib.layers.xavier_initializer(seed=0))
             bias = tf.get_variable("bias", [channels_this_layer], dtype=tf.float32)
-            z = tf.add(tf.nn.conv2d(x_input, weights, strides=[1, 1, 1, 1], padding='SAME'), bias)
+            z = tf.add(tf.nn.conv2d(input_to_this_layer, weights, strides=[1, 1, 1, 1], padding='SAME'), bias)
             activation = tf.nn.relu(z, name=scope.name)
             # Apply pooling with ksize: batch, h, w, channel
-            x_input = tf.nn.max_pool(activation, ksize=(1, 2, 2, 1), strides=[1, 2, 2, 1], padding='VALID')  # to 64
+            input_to_this_layer = tf.nn.max_pool(activation, ksize=(1, 2, 2, 1), strides=[1, 2, 2, 1], padding='VALID')
             channels_prev = channels_this_layer
             channel_count_multiplier *= 2
+            # to 64x64, 32 channels
 
     if h > 32:
-        # Set up conv net
         with tf.variable_scope("cv64") as scope:
-            channels_this_layer = 8 * channel_count_multiplier  # 64
+            channels_this_layer = 8 * channel_count_multiplier
             weights = tf.get_variable("weights", [5, 5, channels_prev, channels_this_layer], dtype=tf.float32,
                                       initializer=tf.contrib.layers.xavier_initializer(seed=0))
             bias = tf.get_variable("bias", [channels_this_layer], dtype=tf.float32)
-            z = tf.add(tf.nn.conv2d(x_input, weights, strides=[1, 1, 1, 1], padding='SAME'), bias)
+            z = tf.add(tf.nn.conv2d(input_to_this_layer, weights, strides=[1, 1, 1, 1], padding='SAME'), bias)
             activation = tf.nn.relu(z, name=scope.name)
             # Apply pooling with ksize: batch, h, w, channel
-            x_input = tf.nn.max_pool(activation, ksize=(1, 2, 2, 1), strides=[1, 2, 2, 1], padding='VALID')  # to 32
+            input_to_this_layer = tf.nn.max_pool(activation, ksize=(1, 2, 2, 1), strides=[1, 2, 2, 1], padding='VALID')
             channels_prev = channels_this_layer
             channel_count_multiplier *= 2
+            # to 32x32, 64 channels
 
-    # Set up conv net
     with tf.variable_scope("cv1") as scope:
         channels_this_layer = 8 * channel_count_multiplier  # 128
         weights = tf.get_variable("weights", [5, 5, channels_prev, channels_this_layer], dtype=tf.float32,
                                   initializer=tf.contrib.layers.xavier_initializer(seed=0))
         bias = tf.get_variable("bias", [channels_this_layer], dtype=tf.float32)
-        z = tf.add(tf.nn.conv2d(x_input, weights, strides=[1, 1, 1, 1], padding='SAME'), bias)
+        z = tf.add(tf.nn.conv2d(input_to_this_layer, weights, strides=[1, 1, 1, 1], padding='SAME'), bias)
         activation = tf.nn.relu(z, name=scope.name)
         # Apply pooling with ksize: batch, h, w, channel
-        p1 = tf.nn.max_pool(activation, ksize=(1, 2, 2, 1), strides=[1, 2, 2, 1], padding='VALID')  # to 16x16
+        p1 = tf.nn.max_pool(activation, ksize=(1, 2, 2, 1), strides=[1, 2, 2, 1], padding='VALID')
         channels_prev = channels_this_layer
         channel_count_multiplier *= 2
+        # to 16x16, 128 channels
 
     with tf.variable_scope("cv2") as scope:
         channels_this_layer = 8 * channel_count_multiplier  # 256
@@ -126,9 +132,10 @@ def build_graph(h, w, channels, classes):
         bias = tf.get_variable("bias", [channels_this_layer], dtype=tf.float32)
         z = tf.add(tf.nn.conv2d(p1, weights, strides=[1, 1, 1, 1], padding='SAME'), bias)
         activation = tf.nn.relu(z, name=scope.name)
-        p2 = tf.nn.max_pool(activation, ksize=(1, 2, 2, 1), strides=[1, 2, 2, 1], padding='VALID')  # to 8x8
+        p2 = tf.nn.max_pool(activation, ksize=(1, 2, 2, 1), strides=[1, 2, 2, 1], padding='VALID')
         channels_prev = channels_this_layer
         channel_count_multiplier *= 2
+        # to 8x8, 256 channels
 
     flat = tf.contrib.layers.flatten(p2)
     fc1 = tf.contrib.layers.fully_connected(flat, activation_fn=tf.nn.relu, num_outputs=2048)
@@ -161,6 +168,10 @@ def train(project_name, x_train, y_train, num_classes, num_epochs=EPOCH_SIZE, x_
         Number of classes in dataset.  For example, 10 for MNIST.
     num_epochs: int
         Number of epochs
+    x_test: ndarray
+        Test dataset used for validation test
+    y_test: ndarray
+        Ground truth for test dataset used for validation test
     Returns
     -------
     cost: float
@@ -229,7 +240,7 @@ def train(project_name, x_train, y_train, num_classes, num_epochs=EPOCH_SIZE, x_
                              feed_dict={x_placeholder: x_train[k:next_k], y_placeholder: y_train_one_hot[k:next_k]})
 
                 log.info("Epoch: %d/%d.  Batch: %d Cost:%f, Batch size: %d" % (
-                i + 1, num_epochs, batch_id, c, current_batch_size))
+                    i + 1, num_epochs, batch_id, c, current_batch_size))
                 batch_id += 1
 
             # remainder
@@ -242,13 +253,13 @@ def train(project_name, x_train, y_train, num_classes, num_epochs=EPOCH_SIZE, x_
                                         y_placeholder: y_train_one_hot[k:k + last_batch_size]})
 
                 log.info("Epoch: %d/%d.  Batch: %d Cost:%f, Batch size: %d" % (
-                i + 1, num_epochs, batch_id, c, last_batch_size))
+                    i + 1, num_epochs, batch_id, c, last_batch_size))
 
             # Save weight
             weight_path = saver.save(s, str(weight_dir / Path("model.ckpt")))
             log.info("Saved model in: %s" % weight_path)
 
-            # Display stats
+            # Display validation test stats
             if x_test is not None and y_test is not None:
                 y_hat_test_one_hot = s.run(y_hat_softmax, feed_dict={x_placeholder: x_test})
 
@@ -259,7 +270,7 @@ def train(project_name, x_train, y_train, num_classes, num_epochs=EPOCH_SIZE, x_
                 matched_count = y_test[matched_indices].shape[0]
                 accuracy = matched_count / total_size
                 log.info(
-                    "Matched: %d out of Total: %d (%f percent)" % (matched_count, total_size, accuracy * 100))
+                    "Validation test: matched: %d out of Total: %d (%f percent)" % (matched_count, total_size, accuracy * 100))
 
         log.info("Training completed.")
 

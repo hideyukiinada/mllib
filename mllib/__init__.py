@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """
-Entry point for mllib
+Main code for mllib.
 
-The goal is to allow the user design a generic convnet and wrap in a library.
+The goal is to allow the user to use ML as a black box.
 
 __author__ = "Hide Inada"
 __copyright__ = "Copyright 2018, Hide Inada"
@@ -13,25 +13,10 @@ __email__ = "hideyuki@gmail.com"
 import os
 import logging
 
-import tensorflow as tf
-import numpy as np
-import sys
-
-import keras
-
-log = logging.getLogger(__name__)
-logging.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"))  # Change the 2nd arg to INFO to suppress debug logging
-
-log.info("mllib loaded")
-
-EPOCH_SIZE = 1
-
-import os
-import logging
-
-import tensorflow as tf
-import numpy as np
 from pathlib import Path
+import tensorflow as tf
+import numpy as np
+
 import keras
 
 log = logging.getLogger(__name__)

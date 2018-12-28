@@ -19,6 +19,7 @@ CLASS_ID_MAP_PATH = Path(MLLIB_TMP_IMAGE_ROOT) / Path(CLASS_ID_MAP_FILE)
 MLLIB_SUBDIRS = ["Abigail Johnson", "Bridget Barnes", "Cheryl Cooper"]
 PROJECT_NAME = "mllib_unit_test"
 
+
 class TestLoadClassIDMap(unittest.TestCase):
 
     def create_label_directories(self):
@@ -28,7 +29,7 @@ class TestLoadClassIDMap(unittest.TestCase):
             mllib_image_dir.mkdir(parents=True, exist_ok=True)
 
         for label_dir in MLLIB_SUBDIRS:
-            label_path =mllib_image_dir / Path(label_dir)
+            label_path = mllib_image_dir / Path(label_dir)
             label_path.mkdir(parents=True, exist_ok=True)
 
     def test_load(self):
@@ -37,7 +38,8 @@ class TestLoadClassIDMap(unittest.TestCase):
         """
         self.create_label_directories()
 
-        class_to_label_map, label_to_class_map = load_class_id_to_label_mapping(PROJECT_NAME, Path(MLLIB_TMP_IMAGE_ROOT))
+        class_to_label_map, label_to_class_map = load_class_id_to_label_mapping(PROJECT_NAME,
+                                                                                Path(MLLIB_TMP_IMAGE_ROOT))
 
         v = sorted(class_to_label_map.values())
 

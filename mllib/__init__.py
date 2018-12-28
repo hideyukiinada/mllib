@@ -67,7 +67,7 @@ def build_graph(h, w, channels, classes):
     if h > 128:
         # Set up conv net
         with tf.variable_scope("cv256") as scope:
-            channels_this_layer=16
+            channels_this_layer = 16
             weights = tf.get_variable("weights", [5, 5, channels_prev, channels_this_layer], dtype=tf.float32,
                                       initializer=tf.contrib.layers.xavier_initializer(seed=0))
             bias = tf.get_variable("bias", [channels_this_layer], dtype=tf.float32)
@@ -81,7 +81,7 @@ def build_graph(h, w, channels, classes):
     if h > 64:
         # Set up conv net
         with tf.variable_scope("cv128") as scope:
-            channels_this_layer = 8 * channel_count_multiplier # 32
+            channels_this_layer = 8 * channel_count_multiplier  # 32
             weights = tf.get_variable("weights", [5, 5, channels_prev, channels_this_layer], dtype=tf.float32,
                                       initializer=tf.contrib.layers.xavier_initializer(seed=0))
             bias = tf.get_variable("bias", [channels_this_layer], dtype=tf.float32)
@@ -95,7 +95,7 @@ def build_graph(h, w, channels, classes):
     if h > 32:
         # Set up conv net
         with tf.variable_scope("cv64") as scope:
-            channels_this_layer = 8 * channel_count_multiplier # 64
+            channels_this_layer = 8 * channel_count_multiplier  # 64
             weights = tf.get_variable("weights", [5, 5, channels_prev, channels_this_layer], dtype=tf.float32,
                                       initializer=tf.contrib.layers.xavier_initializer(seed=0))
             bias = tf.get_variable("bias", [channels_this_layer], dtype=tf.float32)
@@ -168,12 +168,12 @@ def train(project_name, x_train, y_train, num_classes, num_epochs=EPOCH_SIZE, x_
     """
     tf.reset_default_graph()
 
-    weight_dir = Path(WEIGHT_DIR) / Path(project_name.replace(" ", "_"))
+    weight_dir = Path(WEIGHT_DIR) / Path(project_name)
     if weight_dir.exists() is False:
         weight_dir.mkdir(parents=True, exist_ok=True)
         log.info("Created %s" % (weight_dir))
 
-    if len(x_train.shape) == 3: # grayscale image missing the channels
+    if len(x_train.shape) == 3:  # grayscale image missing the channels
         x_train = x_train.reshape((x_train.shape[0], x_train.shape[1], x_train.shape[2], 1))
 
     dataset_size = x_train.shape[0]
@@ -182,9 +182,9 @@ def train(project_name, x_train, y_train, num_classes, num_epochs=EPOCH_SIZE, x_
     channels = x_train.shape[3]
 
     # Randomly sort
-    r = np.arange(0, dataset_size, 1) # For dataset size = 5, generate 0, 1, 2, 3, 4
-    p = np.random.permutation(r) # Shuffle, 4, 2, 0, 1, 3
-    x_train = x_train[p] # Apply the new sequence above
+    r = np.arange(0, dataset_size, 1)  # For dataset size = 5, generate 0, 1, 2, 3, 4
+    p = np.random.permutation(r)  # Shuffle, 4, 2, 0, 1, 3
+    x_train = x_train[p]  # Apply the new sequence above
     y_train = y_train[p]
 
     # Change the value from 0<= x <= 255 in UINT8 to 0 <= x <= 1 in float
@@ -206,6 +206,7 @@ def train(project_name, x_train, y_train, num_classes, num_epochs=EPOCH_SIZE, x_
                 log.info("Loaded weight from: %s" % str(weight_dir / Path("model.ckpt")))
             except:
                 log.info("Weight could not be loaded. Proceeding.")
+                s.run(init_op)
         else:
             log.info("Weights not found. Proceeding.")
             s.run(init_op)  # Actually assign initial value to variables
@@ -227,7 +228,8 @@ def train(project_name, x_train, y_train, num_classes, num_epochs=EPOCH_SIZE, x_
                 o, c = s.run([objective, cost],
                              feed_dict={x_placeholder: x_train[k:next_k], y_placeholder: y_train_one_hot[k:next_k]})
 
-                log.info("Epoch: %d/%d.  Batch: %d Cost:%f, Batch size: %d" % (i+1, num_epochs, batch_id, c, current_batch_size))
+                log.info("Epoch: %d/%d.  Batch: %d Cost:%f, Batch size: %d" % (
+                i + 1, num_epochs, batch_id, c, current_batch_size))
                 batch_id += 1
 
             # remainder
@@ -239,7 +241,8 @@ def train(project_name, x_train, y_train, num_classes, num_epochs=EPOCH_SIZE, x_
                              feed_dict={x_placeholder: x_train[k:k + last_batch_size],
                                         y_placeholder: y_train_one_hot[k:k + last_batch_size]})
 
-                log.info("Epoch: %d/%d.  Batch: %d Cost:%f, Batch size: %d" % (i+1, num_epochs, batch_id, c, last_batch_size))
+                log.info("Epoch: %d/%d.  Batch: %d Cost:%f, Batch size: %d" % (
+                i + 1, num_epochs, batch_id, c, last_batch_size))
 
             # Save weight
             weight_path = saver.save(s, str(weight_dir / Path("model.ckpt")))
@@ -284,10 +287,10 @@ def test(project_name, x_test, y_test, num_classes):
     dataset_size = x_test.shape[0]
     h = x_test.shape[1]
     w = x_test.shape[2]
-    
-    if len(x_test.shape) == 3: # grayscale image missing the channels
+
+    if len(x_test.shape) == 3:  # grayscale image missing the channels
         x_test = x_test.reshape((x_test.shape[0], x_test.shape[1], x_test.shape[2], 1))
-    
+
     channels = x_test.shape[3]
 
     weight_dir = Path(WEIGHT_DIR) / Path(project_name.replace(" ", "_"))

@@ -33,9 +33,9 @@ def example():
     log.info("Starting LFW exapmle")
 
     log.info("Loading data")
-    (x_train, y_train), (x_test, y_test), class_id_to_name_dict = load_image_data(LFW_DIR)
+    (x_train, y_train), (x_test, y_test), (class_id_to_label_dict, label_to_class_id_dict) = load_image_data("lfw", LFW_DIR)
 
-    num_classes = len(class_id_to_name_dict.keys())
+    num_classes = len(class_id_to_label_dict.keys())
     log.info("Training data")
     cost = train("lfw", x_train, y_train, num_classes, num_epochs=50, x_test=x_test, y_test=y_test)
     log.info("Training completed with cost: %f" % cost)

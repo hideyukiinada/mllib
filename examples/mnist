@@ -32,11 +32,11 @@ def example():
     (x_train, y_train), (x_test, y_test) = keras.datasets.fashion_mnist.load_data()
 
     log.info("Training data")
-    cost = train("mnist", x_train, y_train)
+    cost = train("mnist", x_train, y_train, num_classes=10)
     log.info("Training completed with cost: %f" % cost)
 
     log.info("Testing accuracy")
-    accuracy = test("mnist", x_test, y_test)
+    accuracy = test("mnist", x_test, y_test, num_classes=10)
     log.info("Test completed with accuracy: %f" % accuracy)
 
 def main():

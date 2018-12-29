@@ -207,8 +207,9 @@ def train(project_name, x_train, y_train, num_classes, num_epochs=EPOCH_SIZE, x_
     y_train_one_hot = keras.utils.to_categorical(y_train_one_hot, num_classes).astype(np.float32)
 
     if x_test is not None:
+        test_dataset_size = x_test.shape[0]
         x_test = x_test / 255.0
-        x_test = (x_test.reshape(dataset_size, h, w, channels)).astype(np.float32)
+        x_test = (x_test.reshape(test_dataset_size, h, w, channels)).astype(np.float32)
 
     init_op, objective, cost, x_placeholder, y_placeholder, y_hat_softmax = build_graph(h, w, channels, num_classes)
 

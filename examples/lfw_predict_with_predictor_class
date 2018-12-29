@@ -1,0 +1,78 @@
+#!/usr/bin/env python
+"""
+Example code to demo a way to speed up prediction for multiple images using Predictor class.
+
+__author__ = "Hide Inada"
+__copyright__ = "Copyright 2018, Hide Inada"
+__license__ = "The MIT License"
+__email__ = "hideyuki@gmail.com"
+"""
+
+import os
+import logging
+
+from pathlib import Path
+import numpy as np
+import cv2 as cv
+
+from mllib.predict_persistent_session import Predictor
+from mllib.dataload import load_class_id_to_label_mapping
+
+LFW_DIR = Path("../../../../../ai/dataset/UMassFaceData/lfw")
+
+log = logging.getLogger(__name__)
+logging.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"))  # Change the 2nd arg to INFO to suppress debug logging
+
+
+def example():
+    """An example to show how to use mllib.
+    """
+
+    log.info("LFW prediction example")
+
+    class_id_to_label_mapping, label_to_class_id_mapping = load_class_id_to_label_mapping("lfw")
+    classes = len(class_id_to_label_mapping.keys())
+
+    with Predictor("lfw", (250, 250, 3), classes) as p:
+        # Predict the first image
+        colin_image = Path(LFW_DIR) / Path("Colin_Powell/Colin_Powell_0023.jpg")
+        image = cv.imread(str(colin_image))
+        image = cv.cvtColor(image, cv.COLOR_BGR2RGB)
+        x_test = image.reshape(1, image.shape[0], image.shape[1], image.shape[2])
+
+        predicted_class_id = p.predict(x_test)
+        predicted_class_id = int(np.squeeze(predicted_class_id))
+
+        log.info("Prediction: %s" % (class_id_to_label_mapping[str(predicted_class_id)]))
+
+        # Predict second image
+        colin_image2 = Path(LFW_DIR) / Path("Colin_Powell/Colin_Powell_0024.jpg")
+        image = cv.imread(str(colin_image2))
+        image = cv.cvtColor(image, cv.COLOR_BGR2RGB)
+        x_test = image.reshape(1, image.shape[0], image.shape[1], image.shape[2])
+
+        predicted_class_id = p.predict(x_test)
+        predicted_class_id = int(np.squeeze(predicted_class_id))
+
+        log.info("Prediction: %s" % (class_id_to_label_mapping[str(predicted_class_id)]))
+
+    with Predictor("lfw", (250, 250, 3), classes) as p:
+        # Predict the third image in a different session
+        colin_image2 = Path(LFW_DIR) / Path("Colin_Powell/Colin_Powell_0025.jpg")
+        image = cv.imread(str(colin_image2))
+        image = cv.cvtColor(image, cv.COLOR_BGR2RGB)
+        x_test = image.reshape(1, image.shape[0], image.shape[1], image.shape[2])
+
+        predicted_class_id = p.predict(x_test)
+        predicted_class_id = int(np.squeeze(predicted_class_id))
+
+        log.info("Prediction: %s" % (class_id_to_label_mapping[str(predicted_class_id)]))
+
+
+def main():
+    """Defines an application's main functionality"""
+    example()
+
+
+if __name__ == "__main__":
+    main()

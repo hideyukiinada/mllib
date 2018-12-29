@@ -86,7 +86,7 @@ def load_class_id_to_label_mapping(project_name, image_root_dir):
     class_ID_map_path = Path(MLLIB_TMP_ROOT) / Path(project_name) / Path(CLASS_ID_MAP_FILE)
 
     if class_ID_map_path.exists():
-        with open(class_ID_map_path) as f:
+        with open(str(class_ID_map_path)) as f:
             class_id_to_label_dict = json.load(f)
 
         return class_id_to_label_dict, build_label_to_class_id_dict(class_id_to_label_dict)
@@ -102,7 +102,7 @@ def load_class_id_to_label_mapping(project_name, image_root_dir):
         label = x.stem
         class_id_to_label_dict[i] = label
 
-    with open(class_ID_map_path, "w") as f:
+    with open(str(class_ID_map_path), "w") as f:
         json.dump(class_id_to_label_dict, f)
 
     return class_id_to_label_dict, build_label_to_class_id_dict(class_id_to_label_dict)

@@ -352,6 +352,8 @@ def test(project_name, x_test, y_test, num_classes):
         Test dataset
     y_test: ndarray
         Ground truth for test dataset
+    num_classes: int
+        Number of classes in dataset
 
     Returns
     -------
@@ -391,3 +393,55 @@ def test(project_name, x_test, y_test, num_classes):
         log.info("Accuracy: %f percent" % (accuracy * 100))
 
     return accuracy
+
+def predict(project_name, samples, num_classes):
+    """
+    Predict the class of each sample in samples.
+
+    Parameters
+    ----------
+    project_name:
+        Name of the project.  This is used to tag weights.
+    samples: ndarray
+        Sample data
+    num_classes: int
+        Number of classes in dataset
+
+    Returns
+    -------
+    class_id: int
+        Predicted class ID of each sample
+    """
+    dataset_size = samples[0]
+    h = samples.shape[1]
+    w = samples.shape[2]
+
+    if len(samples.shape) == 3:  # grayscale image missing the channels
+        samples = samples.reshape((samples.shape[0], samples.shape[1], samples.shape[2], 1))
+
+    channels = samples.shape[3]
+
+    weight_dir = Path(WEIGHT_DIR) / Path(project_name.replace(" ", "_"))
+
+    tf.reset_default_graph()
+
+    samples = samples / 255.0
+    samples = samples.astype(np.float32)
+
+    init_op, objective, cost, x_placeholder, y_placeholder, y_hat_softmax = build_graph(h, w, channels, num_classes)
+
+    saver = tf.train.Saver()
+
+    with tf.Session() as s:
+
+        if weight_dir.exists():
+            saver.restore(s, str(weight_dir / Path("model.ckpt")))
+            log.info("Loaded weight from: %s" % str(Path(WEIGHT_DIR) / Path("model.ckpt")))
+        else:
+            log.fatal("Weights not found.")
+            raise Exception("Weights not found.")
+
+        y_hat_test_one_hot = s.run(y_hat_softmax, feed_dict={x_placeholder: samples})
+        y_hat_test_one_hot_int = np.argmax(y_hat_test_one_hot, axis=1)  # to int from one-hot vector
+
+    return y_hat_test_one_hot_int

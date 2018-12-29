@@ -26,7 +26,7 @@ def example():
     """An example to show how to use mllib.
     """
 
-    log.info("Starting MNIST exapmle")
+    log.info("Starting MNIST example")
 
     log.info("Loading data")
     (x_train, y_train), (x_test, y_test) = keras.datasets.fashion_mnist.load_data()

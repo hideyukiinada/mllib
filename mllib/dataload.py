@@ -27,7 +27,7 @@ MLLIB_TMP_ROOT = "/tmp/mllib"
 CLASS_ID_MAP_FILE = "class_id_to_label.json"
 
 
-def load_class_id_to_label_mapping(project_name, image_root_dir):
+def load_class_id_to_label_mapping(project_name, image_root_dir=None):
     """Load class ID to label_mapping
 
     Parameters
@@ -53,12 +53,19 @@ def load_class_id_to_label_mapping(project_name, image_root_dir):
         Dimension of the first image is used to determine these three parameters and if an image with non-matching
         dimension is found, the image is ignored.
 
+        if image_root_dir is None and if the mapping file is not found, it raises an exception.
+
     Returns
     -------
     class_id_to_name_dic: dict
         Class ID to class name mapping
     label_to_class_id_dict: dict
         Dictionary that maps label to class ID
+
+    Raises
+    ------
+    ValueError
+        image_root_dir is None and the mapping file is not found
     """
 
     def build_label_to_class_id_dict(class_id_to_label_dict):
@@ -92,6 +99,9 @@ def load_class_id_to_label_mapping(project_name, image_root_dir):
         return class_id_to_label_dict, build_label_to_class_id_dict(class_id_to_label_dict)
 
     # If not found
+    if image_root_dir is None:
+        raise ValueError("image_root_dir is None and the mapping file is not found.")
+
     mllib_dir = Path(MLLIB_TMP_ROOT) / Path(project_name)
     if mllib_dir.exists() is False:
         mllib_dir.mkdir(parents=True, exist_ok=True)
@@ -195,6 +205,7 @@ def load_image_data(project_name, image_root_dir, test_data_ratio=0.2):
                       (label, num_images, MIN_IMAGE_REQUIRED))
             continue
 
+        log.info("Loading %s" % (label))
         num_test_images = max(int(num_images * test_data_ratio), 1)
         num_train_images = num_images - num_test_images
 

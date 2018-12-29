@@ -24,6 +24,7 @@ logging.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"))  # Change the 2nd 
 
 EPOCH_SIZE = 2
 BATCH_SIZE = 16
+PREDICTION_BATCH_SIZE=512
 
 WEIGHT_DIR = "/tmp/mllib/weights"
 
@@ -231,29 +232,36 @@ def train(project_name, x_train, y_train, num_classes, num_epochs=EPOCH_SIZE, x_
             current_batch_size = 0
             batch_id = 1
 
+            total_cost = 0
+            total_samples = 0 # for epoch
             for j in range(loop_count):
                 current_batch_size = BATCH_SIZE
                 k = j * current_batch_size
                 next_k = k + current_batch_size
 
+                total_samples += current_batch_size
+
                 o, c = s.run([objective, cost],
                              feed_dict={x_placeholder: x_train[k:next_k], y_placeholder: y_train_one_hot[k:next_k]})
 
-                log.info("Epoch: %d/%d.  Batch: %d Cost:%f, Batch size: %d" % (
-                    i + 1, num_epochs, batch_id, c, current_batch_size))
+                total_cost += c * current_batch_size
+                log.info("Epoch: %d/%d.  Batch: %d Cost for batch:%f, Cost for epoch: %f. Batch size: %d" % (
+                    i + 1, num_epochs, batch_id, c, total_cost/total_samples, current_batch_size))
                 batch_id += 1
 
             # remainder
             last_batch_size = x_train.shape[0] - next_k
             if last_batch_size > 0:
                 k = next_k
+                total_samples += last_batch_size
 
                 o, c = s.run([objective, cost],
                              feed_dict={x_placeholder: x_train[k:k + last_batch_size],
                                         y_placeholder: y_train_one_hot[k:k + last_batch_size]})
 
-                log.info("Epoch: %d/%d.  Batch: %d Cost:%f, Batch size: %d" % (
-                    i + 1, num_epochs, batch_id, c, last_batch_size))
+                total_cost += c * last_batch_size
+                log.info("Epoch: %d/%d.  Batch: %d Cost for batch:%f, Cost for epoch: %f. Batch size: %d" % (
+                    i + 1, num_epochs, batch_id, c, total_cost/total_samples, last_batch_size))
 
             # Save weight
             weight_path = saver.save(s, str(weight_dir / Path("model.ckpt")))
@@ -261,21 +269,71 @@ def train(project_name, x_train, y_train, num_classes, num_epochs=EPOCH_SIZE, x_
 
             # Display validation test stats
             if x_test is not None and y_test is not None:
-                y_hat_test_one_hot = s.run(y_hat_softmax, feed_dict={x_placeholder: x_test})
+                accuracy = test_accuracy(s, x_test, y_test, x_placeholder, y_hat_softmax)
+                log.info("Validation test accuracy: %f percent" % (accuracy * 100))
 
-                total_size = y_hat_test_one_hot.shape[0]
-                y_hat_test_one_hot_int = np.argmax(y_hat_test_one_hot, axis=1)  # to int from one-hot vector
-
-                matched_indices = (y_hat_test_one_hot_int == y_test)
-                matched_count = y_test[matched_indices].shape[0]
-                accuracy = matched_count / total_size
-                log.info(
-                    "Validation test: matched: %d out of Total: %d (%f percent)" % (matched_count, total_size, accuracy * 100))
 
         log.info("Training completed.")
 
-        return c
+        return total_cost/total_samples
 
+
+def test_accuracy(s, x_test, y_test, x_placeholder, y_hat_softmax):
+    """
+    Test accuracy
+
+    Parameters
+    ----------
+    s: tfSession
+        An open tfSession
+    x_placeholder: tensor
+        Placeholder for input
+    x_test: ndarray
+        Test dataset
+    y_test: ndarray
+        Ground truth for test dataset
+    y_hat_softmax: tensor
+        Predicted value for y
+    """
+
+    dataset_size = x_test.shape[0]
+    total_matched_count = 0
+    next_k = 0
+    loop_count = int(dataset_size / PREDICTION_BATCH_SIZE)  # for m = 5, batch_size = 2, this results in [0, 1]
+    batch_id = 1
+
+    for j in range(loop_count):
+        current_batch_size = BATCH_SIZE
+        k = j * current_batch_size
+        next_k = k + current_batch_size
+
+        y_hat_test_one_hot = s.run(y_hat_softmax, feed_dict={x_placeholder: x_test[k:next_k]})
+
+        batch_id += 1
+
+        y_hat_test_one_hot_int = np.argmax(y_hat_test_one_hot, axis=1)  # to int from one-hot vector
+        y_sub = y_test[k:next_k]
+        matched_indices = (y_hat_test_one_hot_int == y_sub)
+        matched_count = y_sub[matched_indices].shape[0]
+        total_matched_count += matched_count
+
+    # remainder
+    last_batch_size = dataset_size - next_k
+    if last_batch_size > 0:
+        k = next_k
+        y_hat_test_one_hot = s.run(y_hat_softmax, feed_dict={x_placeholder: x_test[k:k + last_batch_size]})
+
+        y_hat_test_one_hot_int = np.argmax(y_hat_test_one_hot, axis=1)  # to int from one-hot vector
+        y_sub = y_test[k:k + last_batch_size]
+        matched_indices = (y_hat_test_one_hot_int == y_sub)
+        matched_count = y_sub[matched_indices].shape[0]
+        total_matched_count += matched_count
+
+    accuracy = total_matched_count / dataset_size
+    log.info(
+        "Matched: %d out of Total: %d (%f percent)" % (total_matched_count, dataset_size, accuracy * 100))
+
+    return accuracy
 
 def test(project_name, x_test, y_test, num_classes):
     """
@@ -324,15 +382,7 @@ def test(project_name, x_test, y_test, num_classes):
             log.fatal("Weights not found.")
             raise Exception("Weights not found.")
 
-        y_hat_test_one_hot = s.run(y_hat_softmax, feed_dict={x_placeholder: x_test})
-
-        total_size = y_hat_test_one_hot.shape[0]
-        y_hat_test_one_hot_int = np.argmax(y_hat_test_one_hot, axis=1)  # to int from one-hot vector
-
-        matched_indices = (y_hat_test_one_hot_int == y_test)
-        matched_count = y_test[matched_indices].shape[0]
-        accuracy = matched_count / total_size
-        log.info(
-            "Matched: %d out of Total: %d (%f percent)" % (matched_count, total_size, accuracy * 100))
+        accuracy = test_accuracy(s, x_test, y_test, x_placeholder, y_hat_softmax)
+        log.info("Accuracy: %f percent" % (accuracy * 100))
 
     return accuracy

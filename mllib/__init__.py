@@ -20,17 +20,23 @@ import numpy as np
 import keras
 
 from .graph import build_graph
+from .graph_alexnet import build_alexnet
 
 log = logging.getLogger(__name__)
 logging.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"))  # Change the 2nd arg to INFO to suppress debug logging
 
 EPOCH_SIZE = 2
 BATCH_SIZE = 16
-PREDICTION_BATCH_SIZE=16
+PREDICTION_BATCH_SIZE = 16
 
 WEIGHT_DIR = "/tmp/mllib/weights"
 
-def train(project_name, x_train, y_train, num_classes, num_epochs=EPOCH_SIZE, x_test=None, y_test=None):
+CONV_NET = 0
+ALEXNET = 1 # Experimental
+
+
+def train(project_name, x_train, y_train, num_classes, num_epochs=EPOCH_SIZE, x_test=None, y_test=None,
+          net_type=CONV_NET):
     """
     Train the model
 
@@ -88,7 +94,11 @@ def train(project_name, x_train, y_train, num_classes, num_epochs=EPOCH_SIZE, x_
         x_test = x_test / 255.0
         x_test = (x_test.reshape(test_dataset_size, h, w, channels)).astype(np.float32)
 
-    init_op, objective, cost, x_placeholder, y_placeholder, y_hat_softmax = build_graph(h, w, channels, num_classes)
+    if net_type == CONV_NET:
+        init_op, objective, cost, x_placeholder, y_placeholder, y_hat_softmax = build_graph(h, w, channels, num_classes)
+    elif net_type == ALEXNET:
+        init_op, objective, cost, x_placeholder, y_placeholder, y_hat_softmax = build_alexnet(h, w, channels,
+                                                                                              num_classes)
 
     saver = tf.train.Saver()
 
@@ -115,7 +125,7 @@ def train(project_name, x_train, y_train, num_classes, num_epochs=EPOCH_SIZE, x_
             batch_id = 1
 
             total_cost = 0
-            total_samples = 0 # for epoch
+            total_samples = 0  # for epoch
             for j in range(loop_count):
                 current_batch_size = BATCH_SIZE
                 k = j * current_batch_size
@@ -128,7 +138,7 @@ def train(project_name, x_train, y_train, num_classes, num_epochs=EPOCH_SIZE, x_
 
                 total_cost += c * current_batch_size
                 log.info("Epoch: %d/%d.  Batch: %d Cost for batch:%f, Cost for epoch: %f. Batch size: %d" % (
-                    i + 1, num_epochs, batch_id, c, total_cost/total_samples, current_batch_size))
+                    i + 1, num_epochs, batch_id, c, total_cost / total_samples, current_batch_size))
                 batch_id += 1
 
             # remainder
@@ -143,7 +153,7 @@ def train(project_name, x_train, y_train, num_classes, num_epochs=EPOCH_SIZE, x_
 
                 total_cost += c * last_batch_size
                 log.info("Epoch: %d/%d.  Batch: %d Cost for batch:%f, Cost for epoch: %f. Batch size: %d" % (
-                    i + 1, num_epochs, batch_id, c, total_cost/total_samples, last_batch_size))
+                    i + 1, num_epochs, batch_id, c, total_cost / total_samples, last_batch_size))
 
             # Save weight
             weight_path = saver.save(s, str(weight_dir / Path("model.ckpt")))
@@ -154,10 +164,9 @@ def train(project_name, x_train, y_train, num_classes, num_epochs=EPOCH_SIZE, x_
                 accuracy = test_accuracy(s, x_test, y_test, x_placeholder, y_hat_softmax)
                 log.info("Validation test accuracy: %f percent" % (accuracy * 100))
 
-
         log.info("Training completed.")
 
-        return total_cost/total_samples
+        return total_cost / total_samples
 
 
 def test_accuracy(s, x_test, y_test, x_placeholder, y_hat_softmax):
@@ -217,7 +226,8 @@ def test_accuracy(s, x_test, y_test, x_placeholder, y_hat_softmax):
 
     return accuracy
 
-def test(project_name, x_test, y_test, num_classes):
+
+def test(project_name, x_test, y_test, num_classes, net_type=CONV_NET):
     """
     Test accuracy using test dataset.
 
@@ -253,7 +263,11 @@ def test(project_name, x_test, y_test, num_classes):
     x_test = x_test / 255.0
     x_test = (x_test.reshape(dataset_size, h, w, channels)).astype(np.float32)
 
-    init_op, objective, cost, x_placeholder, y_placeholder, y_hat_softmax = build_graph(h, w, channels, num_classes)
+    if net_type == CONV_NET:
+        init_op, objective, cost, x_placeholder, y_placeholder, y_hat_softmax = build_graph(h, w, channels, num_classes)
+    elif net_type == ALEXNET:
+        init_op, objective, cost, x_placeholder, y_placeholder, y_hat_softmax = build_alexnet(h, w, channels,
+                                                                                              num_classes)
 
     saver = tf.train.Saver()
 
@@ -270,6 +284,7 @@ def test(project_name, x_test, y_test, num_classes):
         log.info("Accuracy: %f percent" % (accuracy * 100))
 
     return accuracy
+
 
 def predict(project_name, samples, num_classes):
     """

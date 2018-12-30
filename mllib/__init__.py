@@ -31,10 +31,11 @@ BATCH_SIZE = 16
 PREDICTION_BATCH_SIZE = 16
 
 WEIGHT_DIR = "/tmp/mllib/weights"
+TENSORBOARD_LOG_DIR = "/tmp/mllib/tensorboard"
 
 CONV_NET = 0
-ALEXNET = 1 # Experimental and possibly be deleted in the future.
-VGG19 = 2 # Experimental and possibly be deleted in the future.
+ALEXNET = 1  # Experimental and possibly be deleted in the future.
+VGG19 = 2  # Experimental and possibly be deleted in the future.
 
 
 def train(project_name, x_train, y_train, num_classes, num_epochs=EPOCH_SIZE, x_test=None, y_test=None,
@@ -75,6 +76,12 @@ def train(project_name, x_train, y_train, num_classes, num_epochs=EPOCH_SIZE, x_
         weight_dir.mkdir(parents=True, exist_ok=True)
         log.info("Created %s" % (weight_dir))
 
+    tensorboard_dir = Path(TENSORBOARD_LOG_DIR) / Path(project_name)
+    if tensorboard_dir.exists() is False:
+        tensorboard_dir.mkdir(parents=True, exist_ok=True)
+        log.info("TensorBoard log directory created %s.  Start TensorBoard with 'tensorboard -log=%s'" %
+                 (tensorboard_dir, tensorboard_dir))
+
     if len(x_train.shape) == 3:  # grayscale image missing the channels
         x_train = x_train.reshape((x_train.shape[0], x_train.shape[1], x_train.shape[2], 1))
 
@@ -104,15 +111,19 @@ def train(project_name, x_train, y_train, num_classes, num_epochs=EPOCH_SIZE, x_
     if net_type == CONV_NET:
         init_op, objective, cost, x_placeholder, y_placeholder, y_hat_softmax = build_graph(h, w, channels, num_classes)
     elif net_type == ALEXNET:
-        init_op, objective, cost, x_placeholder, y_placeholder, y_hat_softmax = build_alexnet(h, w, channels,num_classes)
+        init_op, objective, cost, x_placeholder, y_placeholder, y_hat_softmax = build_alexnet(h, w, channels,
+                                                                                              num_classes)
     elif net_type == VGG19:
         init_op, objective, cost, x_placeholder, y_placeholder, y_hat_softmax = build_vgg19(h, w, channels, num_classes)
     else:
         raise ValueError("Invalud network type specified")
 
+    tensorboard_stats = tf.summary.merge_all()
     saver = tf.train.Saver()
 
     with tf.Session() as s:
+
+        tensorboard_writer = tf.summary.FileWriter(tensorboard_dir, s.graph)
 
         if Path(WEIGHT_DIR).exists():
             try:
@@ -143,12 +154,15 @@ def train(project_name, x_train, y_train, num_classes, num_epochs=EPOCH_SIZE, x_
 
                 total_samples += current_batch_size
 
-                o, c = s.run([objective, cost],
-                             feed_dict={x_placeholder: x_train[k:next_k], y_placeholder: y_train_one_hot[k:next_k]})
+                tensorboard_summary, o, c = s.run([tensorboard_stats, objective, cost],
+                                                  feed_dict={x_placeholder: x_train[k:next_k],
+                                                             y_placeholder: y_train_one_hot[k:next_k]})
 
                 total_cost += c * current_batch_size
                 log.info("Epoch: %d/%d.  Batch: %d Cost for batch:%f, Cost for epoch: %f. Batch size: %d" % (
                     i + 1, num_epochs, batch_id, c, total_cost / total_samples, current_batch_size))
+                tensorboard_writer.add_summary(tensorboard_summary, i * BATCH_SIZE + batch_id)
+
                 batch_id += 1
 
             # remainder
@@ -157,13 +171,15 @@ def train(project_name, x_train, y_train, num_classes, num_epochs=EPOCH_SIZE, x_
                 k = next_k
                 total_samples += last_batch_size
 
-                o, c = s.run([objective, cost],
-                             feed_dict={x_placeholder: x_train[k:k + last_batch_size],
-                                        y_placeholder: y_train_one_hot[k:k + last_batch_size]})
+                tensorboard_summary, o, c = s.run([tensorboard_stats, objective, cost],
+                                                  feed_dict={x_placeholder: x_train[k:k + last_batch_size],
+                                                             y_placeholder: y_train_one_hot[k:k + last_batch_size]})
 
                 total_cost += c * last_batch_size
                 log.info("Epoch: %d/%d.  Batch: %d Cost for batch:%f, Cost for epoch: %f. Batch size: %d" % (
                     i + 1, num_epochs, batch_id, c, total_cost / total_samples, last_batch_size))
+
+                tensorboard_writer.add_summary(tensorboard_summary, i * BATCH_SIZE + batch_id)
 
             # Save weight
             weight_path = saver.save(s, str(weight_dir / Path("model.ckpt")))
@@ -281,7 +297,8 @@ def test(project_name, x_test, y_test, num_classes, net_type=CONV_NET):
     if net_type == CONV_NET:
         init_op, objective, cost, x_placeholder, y_placeholder, y_hat_softmax = build_graph(h, w, channels, num_classes)
     elif net_type == ALEXNET:
-        init_op, objective, cost, x_placeholder, y_placeholder, y_hat_softmax = build_alexnet(h, w, channels,num_classes)
+        init_op, objective, cost, x_placeholder, y_placeholder, y_hat_softmax = build_alexnet(h, w, channels,
+                                                                                              num_classes)
     elif net_type == VGG19:
         init_op, objective, cost, x_placeholder, y_placeholder, y_hat_softmax = build_vgg19(h, w, channels, num_classes)
     else:

@@ -250,6 +250,7 @@ def build_vgg19(h, w, channels, classes):
     # Set up optimizer & cost
     optimizer = tf.train.AdamOptimizer(learning_rate=0.001, beta1=0.9, beta2=0.999)
     cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=fc_last, labels=y_placeholder))
+    tf.summary.scalar('Cost', cost)
     objective = optimizer.minimize(cost)
 
     init_op = tf.global_variables_initializer()  # Set up operator to assign all init values to variables

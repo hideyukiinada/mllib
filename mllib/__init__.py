@@ -123,7 +123,7 @@ def train(project_name, x_train, y_train, num_classes, num_epochs=EPOCH_SIZE, x_
 
     with tf.Session() as s:
 
-        tensorboard_writer = tf.summary.FileWriter(tensorboard_dir, s.graph)
+        tensorboard_writer = tf.summary.FileWriter(str(tensorboard_dir), s.graph)
 
         if Path(WEIGHT_DIR).exists():
             try:
@@ -230,6 +230,10 @@ def test_accuracy(s, x_test, y_test, x_placeholder, y_hat_softmax):
 
         y_hat_test_one_hot_int = np.argmax(y_hat_test_one_hot, axis=1)  # to int from one-hot vector
         y_sub = y_test[k:next_k]
+        y_sub_shape = y_sub.shape
+        if len(y_sub_shape) ==2 and y_sub_shape[1] ==1:
+            y_sub = y_sub.reshape(y_sub.shape[0])
+
         matched_indices = (y_hat_test_one_hot_int == y_sub)
         matched_count = y_sub[matched_indices].shape[0]
         total_matched_count += matched_count

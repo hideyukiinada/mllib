@@ -22,6 +22,7 @@ import keras
 from .graph import build_graph
 from .graph_alexnet import build_alexnet
 from .graph_vggnet import build_vgg19
+from .graph_resnet_small import build_resnet_small
 
 log = logging.getLogger(__name__)
 logging.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"))  # Change the 2nd arg to INFO to suppress debug logging
@@ -36,7 +37,7 @@ TENSORBOARD_LOG_DIR = "/tmp/mllib/tensorboard"
 CONV_NET = 0
 ALEXNET = 1  # Experimental and possibly be deleted in the future.
 VGG19 = 2  # Experimental and possibly be deleted in the future.
-
+RESNET_SMALL = 3
 
 def train(project_name, x_train, y_train, num_classes, num_epochs=EPOCH_SIZE, x_test=None, y_test=None,
           net_type=CONV_NET):
@@ -112,9 +113,11 @@ def train(project_name, x_train, y_train, num_classes, num_epochs=EPOCH_SIZE, x_
         init_op, objective, cost, x_placeholder, y_placeholder, y_hat_softmax = build_graph(h, w, channels, num_classes)
     elif net_type == ALEXNET:
         init_op, objective, cost, x_placeholder, y_placeholder, y_hat_softmax = build_alexnet(h, w, channels,
-                                                                                              num_classes)
+                                                                                                 num_classes)
     elif net_type == VGG19:
         init_op, objective, cost, x_placeholder, y_placeholder, y_hat_softmax = build_vgg19(h, w, channels, num_classes)
+    elif net_type == RESNET_SMALL:
+        init_op, objective, cost, x_placeholder, y_placeholder, y_hat_softmax = build_resnet_small(h, w, channels, num_classes)
     else:
         raise ValueError("Invalud network type specified")
 
@@ -305,6 +308,8 @@ def test(project_name, x_test, y_test, num_classes, net_type=CONV_NET):
                                                                                               num_classes)
     elif net_type == VGG19:
         init_op, objective, cost, x_placeholder, y_placeholder, y_hat_softmax = build_vgg19(h, w, channels, num_classes)
+    elif net_type == RESNET_SMALL:
+        init_op, objective, cost, x_placeholder, y_placeholder, y_hat_softmax = build_resnet_small(h, w, channels, num_classes)
     else:
         raise ValueError("Invalud network type specified")
 

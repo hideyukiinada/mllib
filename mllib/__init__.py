@@ -28,8 +28,8 @@ log = logging.getLogger(__name__)
 logging.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"))  # Change the 2nd arg to INFO to suppress debug logging
 
 EPOCH_SIZE = 2
-BATCH_SIZE = 16
-PREDICTION_BATCH_SIZE = 16
+BATCH_SIZE = 128
+PREDICTION_BATCH_SIZE = 128
 
 WEIGHT_DIR = "/tmp/mllib/weights"
 TENSORBOARD_LOG_DIR = "/tmp/mllib/tensorboard"
@@ -249,6 +249,10 @@ def test_accuracy(s, x_test, y_test, x_placeholder, y_hat_softmax):
 
         y_hat_test_one_hot_int = np.argmax(y_hat_test_one_hot, axis=1)  # to int from one-hot vector
         y_sub = y_test[k:k + last_batch_size]
+        y_sub_shape = y_sub.shape
+        if len(y_sub_shape) ==2 and y_sub_shape[1] ==1:
+            y_sub = y_sub.reshape(y_sub.shape[0])
+
         matched_indices = (y_hat_test_one_hot_int == y_sub)
         matched_count = y_sub[matched_indices].shape[0]
         total_matched_count += matched_count

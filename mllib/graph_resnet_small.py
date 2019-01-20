@@ -53,6 +53,8 @@ def conv(layer_name, input_to_this_layer, channels_prev, channels_this_layer, fi
         bias = tf.get_variable("bias", [channels_this_layer], dtype=tf.float32)
         z = tf.add(tf.nn.conv2d(input_to_this_layer, weights, strides=[1, strides, strides, 1], padding='SAME'), bias)
 
+        z = tf.contrib.layers.instance_norm(z)
+
         return z
 
 
@@ -88,6 +90,9 @@ def conv_relu(layer_name, input_to_this_layer, channels_prev, channels_this_laye
         bias = tf.get_variable("bias", [channels_this_layer], dtype=tf.float32)
         w_prev_a = tf.nn.conv2d(input_to_this_layer, weights, strides=[1, strides, strides, 1], padding='SAME')
         z = tf.add(w_prev_a, bias)
+
+        z = tf.contrib.layers.instance_norm(z)
+
         activation = tf.nn.relu(z, name=scope.name)
 
         return activation
@@ -130,6 +135,8 @@ def single_resnet_block(layer_name, input_to_this_layer, channels_prev, channels
             strides = 1
 
         z = conv(layer_name + "_2", activation, channels_this_layer, channels_this_layer, 3, strides)
+
+        z = tf.contrib.layers.instance_norm(z)
 
         if downsample:
             activation = tf.nn.relu(z + downsampled_identity, name=scope.name)

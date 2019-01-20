@@ -232,11 +232,11 @@ def build_resnet_small(h, w, channels, classes):
         raise ValueError("Height, width and channels need to be 32x32x3")
 
     activation = conv_relu("conv1", input_to_this_layer, 3, 16, 3, 1)  # 3x3 filter, 1 stride
-    activation = n_resnet_blocks("resnet1_", activation, 5, 16, 16)  # 5 blocks, 16 channels
-    activation = n_resnet_blocks("resnet2_", activation, 5, 16, 32,
-                                 downsample=True)  # 5 blocks, change from 16 channels to 32 channels, feature map to 16 high x 16 wide
-    activation = n_resnet_blocks("resnet3_", activation, 5, 32, 64,
-                                 downsample=True)  # 5 blocks, change from 32 channels to 64 channels, feature map to 8 high x 8 wide
+    activation = n_resnet_blocks("resnet1_", activation, 9, 16, 16)  # 9 blocks, 16 channels
+    activation = n_resnet_blocks("resnet2_", activation, 9, 16, 32,
+                                 downsample=True)  # 9 blocks, change from 16 channels to 32 channels, feature map to 16 high x 16 wide
+    activation = n_resnet_blocks("resnet3_", activation, 9, 32, 64,
+                                 downsample=True)  # 9 blocks, change from 32 channels to 64 channels, feature map to 8 high x 8 wide
 
     flat = tf.contrib.layers.flatten(activation)
     fc1 = tf.contrib.layers.fully_connected(flat, activation_fn=tf.nn.relu, num_outputs=2048)

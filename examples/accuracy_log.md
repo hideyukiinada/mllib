@@ -25,6 +25,9 @@ Image size: 32x32
 |ResNet (n=2) with InstanceNorm | 32 | 128 | 0.050318 | 69.46% | Linux |
 |ResNet (n=5) with InstanceNorm | 32 | 128 | 0.063170 | 70.70% | Linux |
 |ResNet (n=5) with InstanceNorm | 100 | 128 | 0.017879 | 71.40% | Linux |
+|ResNet (n=9) with InstanceNorm | 100 | 128 | 0.036436 | 70.41% | Linux |
+
+
 
 ## Machines used
 * Mac (OS:10.13.5, RAM: 16 GB, CPU: 2.6 GHz Intel Core i5, Python: 3.6.7) 

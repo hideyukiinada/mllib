@@ -30,6 +30,7 @@ Image size: 32x32
 |ResNet (n=2) with BatchNorm | 8 | 128 | 0.188598 | 59.10% | Linux |
 |ResNet (n=2) with BatchNorm | 32 | 128 | 0.027148 | 61.59% | Linux |
 |ResNet (n=2) with BatchNorm and global average pool | 8 | 128 | 0.801303 | 67.65% | Linux |
+|ResNet (n=2) with BatchNorm and global average pool | 32 | 128 | 0.188459 | 70.27% | Linux |
 
 ## Machines used
 * Mac (OS:10.13.5, RAM: 16 GB, CPU: 2.6 GHz Intel Core i5, Python: 3.6.7) 

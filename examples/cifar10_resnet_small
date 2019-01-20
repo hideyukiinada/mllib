@@ -33,11 +33,11 @@ def example():
     (x_train, y_train), (x_test, y_test) = keras.datasets.cifar10.load_data() # https://keras.io/datasets/
 
     log.info("Training data")
-    cost = train("cifar10", x_train, y_train, num_classes=10, net_type=mllib.RESNET_SMALL)
+    cost = train("cifar10", x_train, y_train, num_classes=10, num_epochs=16, net_type=mllib.RESNET_SMALL)
     log.info("Training completed with cost: %f" % cost)
 
     log.info("Testing accuracy")
-    accuracy = test("cifar10", x_test, y_test, num_classes=10)
+    accuracy = test("cifar10", x_test, y_test, num_classes=10, net_type=mllib.RESNET_SMALL)
     log.info("Test completed with accuracy: %f" % accuracy)
 
 def main():

@@ -12,10 +12,13 @@ Type|Size|
 
 Image size: 32x32
 
-|Type|Epoch|Batch size | Loss|Test Accuracy | Machine used | 
+|Type|Epoch|Batch size | Loss (epoch)|Test Accuracy | Machine used |
 |---|---|---|---|---|---|
-|Original code | 2 | 16 | 1.153258 | 60.04% | Mac |
+|Original code | 2 | 16 | 1.140639 | 60.26% | Linux |
+|ResNet (n=2) | 2 | 16 | 1.239102 | 57.14% | Linux |
+|ResNet (n=2) | 4 | 16 | 0.600146 | 59.07% | Linux |
+|ResNet (n=2) | 8 | 16 | 0.175138 | 57.46% | Linux |
+|ResNet (n=2) | 16 | 16 | 0.110585 | 57.73% | Linux |
 
- 
 ## Machines used
 * Mac (OS:10.13.5, RAM: 16 GB, CPU: 2.6 GHz Intel Core i5, Python: 3.6.7) 

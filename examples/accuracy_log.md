@@ -21,6 +21,7 @@ Image size: 32x32
 |ResNet (n=2) | 16 | 16 | 0.110585 | 57.73% | Linux |
 |ResNet (n=2) | 16 | 128 | 0.050868 | 60.77% | Linux |
 |ResNet (n=2) | 32 | 128 | 0.031375 | 60.95% | Linux |
+|ResNet (n=2) with BatchNorm | 8 | 128 | 0.188598 | 59.10% | Linux |
 |ResNet (n=2) with InstanceNorm | 8 | 128 | 0.488496 | 67.16% | Linux |
 |ResNet (n=2) with InstanceNorm | 32 | 128 | 0.050318 | 69.46% | Linux |
 |ResNet (n=5) with InstanceNorm | 32 | 128 | 0.063170 | 70.70% | Linux |

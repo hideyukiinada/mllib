@@ -117,7 +117,7 @@ def train(project_name, x_train, y_train, num_classes, num_epochs=EPOCH_SIZE, x_
     elif net_type == VGG19:
         init_op, objective, cost, x_placeholder, y_placeholder, y_hat_softmax = build_vgg19(h, w, channels, num_classes)
     elif net_type == RESNET_SMALL:
-        init_op, objective, cost, x_placeholder, y_placeholder, y_hat_softmax = build_resnet_small(h, w, channels, num_classes)
+        init_op, objective, cost, x_placeholder, y_placeholder, y_hat_softmax = build_resnet_small(h, w, channels, num_classes, training=True)
     else:
         raise ValueError("Invalud network type specified")
 

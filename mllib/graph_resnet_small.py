@@ -21,7 +21,7 @@ log = logging.getLogger(__name__)
 logging.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"))  # Change the 2nd arg to INFO to suppress debug logging
 
 
-def conv(layer_name, input_to_this_layer, channels_prev, channels_this_layer, filter_size=3, strides=1):
+def conv(layer_name, input_to_this_layer, channels_prev, channels_this_layer, filter_size=3, strides=1, training=True):
     """
     Defines a single convolution block without activation.
 
@@ -39,6 +39,8 @@ def conv(layer_name, input_to_this_layer, channels_prev, channels_this_layer, fi
         Convolution filer kernel size (height and width)
     strides: int
         Convolution filer stride (vertical and horizontal move)
+    training: bool
+        True for training, False for inferring
 
     Returns
     -------
@@ -53,12 +55,12 @@ def conv(layer_name, input_to_this_layer, channels_prev, channels_this_layer, fi
         bias = tf.get_variable("bias", [channels_this_layer], dtype=tf.float32)
         z = tf.add(tf.nn.conv2d(input_to_this_layer, weights, strides=[1, strides, strides, 1], padding='SAME'), bias)
 
-        z = tf.contrib.layers.instance_norm(z)
+        z = tf.layers.batch_normalization(z, training)
 
         return z
 
 
-def conv_relu(layer_name, input_to_this_layer, channels_prev, channels_this_layer, filter_size=3, strides=1):
+def conv_relu(layer_name, input_to_this_layer, channels_prev, channels_this_layer, filter_size=3, strides=1, training=True):
     """
     Defines a single convolution block.
 
@@ -76,6 +78,8 @@ def conv_relu(layer_name, input_to_this_layer, channels_prev, channels_this_laye
         Convolution filer kernel size (height and width)
     strides: int
         Convolution filer stride (vertical and horizontal move)
+    training: bool
+        True for training, False for inferring
 
     Returns
     -------
@@ -91,14 +95,14 @@ def conv_relu(layer_name, input_to_this_layer, channels_prev, channels_this_laye
         w_prev_a = tf.nn.conv2d(input_to_this_layer, weights, strides=[1, strides, strides, 1], padding='SAME')
         z = tf.add(w_prev_a, bias)
 
-        z = tf.contrib.layers.instance_norm(z)
+        z = tf.layers.batch_normalization(z, training)
 
         activation = tf.nn.relu(z, name=scope.name)
 
         return activation
 
 
-def single_resnet_block(layer_name, input_to_this_layer, channels_prev, channels_this_layer, downsample=False):
+def single_resnet_block(layer_name, input_to_this_layer, channels_prev, channels_this_layer, downsample=False, training=True):
     """
     Defines a single ResNet block.
 
@@ -114,6 +118,8 @@ def single_resnet_block(layer_name, input_to_this_layer, channels_prev, channels
         Number of channels in the current layer
     downsample: bool
         If yes, use strides=2 to downsample.  If no, use strides=1
+    training: bool
+        True for training, False for inferring
 
     Returns
     -------
@@ -136,7 +142,7 @@ def single_resnet_block(layer_name, input_to_this_layer, channels_prev, channels
 
         z = conv(layer_name + "_2", activation, channels_this_layer, channels_this_layer, 3, strides)
 
-        z = tf.contrib.layers.instance_norm(z)
+        z = tf.layers.batch_normalization(z, training)
 
         if downsample:
             activation = tf.nn.relu(z + downsampled_identity, name=scope.name)
@@ -146,7 +152,7 @@ def single_resnet_block(layer_name, input_to_this_layer, channels_prev, channels
         return activation
 
 
-def n_resnet_blocks(block_name, input_to_this_layer, num_blocks, channels_prev, channels_this_block, downsample=False):
+def n_resnet_blocks(block_name, input_to_this_layer, num_blocks, channels_prev, channels_this_block, downsample=False, training=True):
     """
 
     Defines n ResNet blocks.
@@ -165,6 +171,8 @@ def n_resnet_blocks(block_name, input_to_this_layer, num_blocks, channels_prev, 
         Number of channels in the current block
     downsample: bool
         If yes, use strides=2 to downsample.  If no, use strides=1
+    training: bool
+        True for training, False for inferring
 
     Returns
     -------
@@ -177,20 +185,20 @@ def n_resnet_blocks(block_name, input_to_this_layer, num_blocks, channels_prev, 
     # Downsample
     if downsample:
         feature_map = single_resnet_block(block_name + "1", feature_map, channels_prev, channels_this_block,
-                                          downsample=True)
+                                          downsample=True, training=training)
 
         for i in range(num_blocks - 1):
-            feature_map = single_resnet_block(block_name + str(i + 2), feature_map, channels_this_block, channels_this_block)
+            feature_map = single_resnet_block(block_name + str(i + 2), feature_map, channels_this_block, channels_this_block, training=training)
 
         return feature_map
     else:
         for i in range(num_blocks):
-            feature_map = single_resnet_block(block_name + str(i + 1), feature_map, channels_this_block, channels_this_block)
+            feature_map = single_resnet_block(block_name + str(i + 1), feature_map, channels_this_block, channels_this_block, training=training)
 
         return feature_map
 
 
-def build_resnet_small(h, w, channels, classes):
+def build_resnet_small(h, w, channels, classes, training=True):
     """
     Build TensorFlow graph
 
@@ -217,6 +225,8 @@ def build_resnet_small(h, w, channels, classes):
         Placeholder to feed x input
     y_placeholder: tensor
         Placeholder to feed y input
+    training: bool
+        True for training, False for inferring
 
     Raises
     ------
@@ -231,12 +241,12 @@ def build_resnet_small(h, w, channels, classes):
     if h != 32 or w != 32 or channels != 3:
         raise ValueError("Height, width and channels need to be 32x32x3")
 
-    activation = conv_relu("conv1", input_to_this_layer, 3, 16, 3, 1)  # 3x3 filter, 1 stride
-    activation = n_resnet_blocks("resnet1_", activation, 9, 16, 16)  # 9 blocks, 16 channels
-    activation = n_resnet_blocks("resnet2_", activation, 9, 16, 32,
-                                 downsample=True)  # 9 blocks, change from 16 channels to 32 channels, feature map to 16 high x 16 wide
-    activation = n_resnet_blocks("resnet3_", activation, 9, 32, 64,
-                                 downsample=True)  # 9 blocks, change from 32 channels to 64 channels, feature map to 8 high x 8 wide
+    activation = conv_relu("conv1", input_to_this_layer, 3, 16, 3, 1, training=training)  # 3x3 filter, 1 stride
+    activation = n_resnet_blocks("resnet1_", activation, 2, 16, 16, training=training)  # 9 blocks, 16 channels
+    activation = n_resnet_blocks("resnet2_", activation, 2, 16, 32,
+                                 downsample=True, training=training)  # 9 blocks, change from 16 channels to 32 channels, feature map to 16 high x 16 wide
+    activation = n_resnet_blocks("resnet3_", activation, 2, 32, 64,
+                                 downsample=True, training=training)  # 9 blocks, change from 32 channels to 64 channels, feature map to 8 high x 8 wide
 
     flat = tf.contrib.layers.flatten(activation)
     fc1 = tf.contrib.layers.fully_connected(flat, activation_fn=tf.nn.relu, num_outputs=2048)
@@ -248,7 +258,10 @@ def build_resnet_small(h, w, channels, classes):
     cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=fc2, labels=y_placeholder))
 
     tf.summary.scalar('Cost', cost)
-    objective = optimizer.minimize(cost)
+
+    update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS) # needed for batchnorm
+    with tf.control_dependencies(update_ops): # needed for batchnorm
+        objective = optimizer.minimize(cost)
 
     init_op = tf.global_variables_initializer()  # Set up operator to assign all init values to variables
 

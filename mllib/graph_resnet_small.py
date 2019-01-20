@@ -248,9 +248,11 @@ def build_resnet_small(h, w, channels, classes, training=True):
     activation = n_resnet_blocks("resnet3_", activation, 2, 32, 64,
                                  downsample=True, training=training)  # 9 blocks, change from 32 channels to 64 channels, feature map to 8 high x 8 wide
 
+    #activation = tf.layers.average_pooling2d(activation)
+    activation = tf.reduce_mean(activation, axis=[1, 2]) # take the mean for height and width
     flat = tf.contrib.layers.flatten(activation)
-    fc1 = tf.contrib.layers.fully_connected(flat, activation_fn=tf.nn.relu, num_outputs=2048)
-    fc2 = tf.contrib.layers.fully_connected(fc1, activation_fn=None, num_outputs=classes)
+    #fc1 = tf.contrib.layers.fully_connected(flat, activation_fn=tf.nn.relu, num_outputs=2048)
+    fc2 = tf.contrib.layers.fully_connected(activation, activation_fn=None, num_outputs=classes)
     y_hat_softmax = tf.nn.softmax(fc2)  # you can just use fc2 for prediction if you want to further optimize
 
     # Set up optimizer & cost
